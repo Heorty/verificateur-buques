@@ -475,10 +475,24 @@ class TestEndToEndServerAndWebSocket(unittest.TestCase):
                 else:
                     self.fail("Le serveur Uvicorn n'a pas démarré à temps.")
 
-                # Vérifier l'accueil HTML
+                # Vérifier l'accueil HTML, le CSS, la police Clunsois et le logo AMTrad'ss
                 r_home = requests.get(base + "/", timeout=2)
                 self.assertEqual(r_home.status_code, 200)
                 self.assertIn("Vérificateur de Buques", r_home.text)
+                self.assertIn("/static/img/Amtradszaloeil.svg", r_home.text)
+
+                r_logo = requests.get(base + "/static/img/Amtradszaloeil.svg", timeout=2)
+                self.assertEqual(r_logo.status_code, 200)
+                self.assertIn("<svg", r_logo.text)
+
+                r_css = requests.get(base + "/static/styles.css", timeout=2)
+                self.assertEqual(r_css.status_code, 200)
+                self.assertIn("clunsois_complet.ttf", r_css.text)
+                self.assertIn('"Clunsois"', r_css.text)
+
+                r_font = requests.get(base + "/static/fonts/clunsois_complet.ttf", timeout=2)
+                self.assertEqual(r_font.status_code, 200)
+                self.assertTrue(r_font.content.startswith(b"\x00\x01\x00\x00"))
 
                 # Connecter 2 clients WebSocket simultanés
                 ws_url = f"ws://127.0.0.1:{port}/ws"

@@ -1,4 +1,5 @@
 const DEFAULT_FONTS = [
+  "Clunsois",
   "Garamond",
   "Helvetica",
   "Times New Roman",
@@ -94,13 +95,13 @@ function debounce(fn, delayMs) {
 function ensureOperatorName(forcePrompt = false) {
   if (!state.operator || forcePrompt) {
     const chosen = window.prompt(
-      "Votre prénom / pseudo d'opérateur (affiché aux autres personnes connectées) :",
-      state.operator || "Opérateur"
+      "Ta buque / ton prénom de Gadz' (affiché aux autres Gadz' connectés) :",
+      state.operator || "Gadz"
     );
     if (chosen && chosen.trim()) {
       state.operator = chosen.trim().slice(0, 40);
     } else if (!state.operator) {
-      state.operator = "Opérateur-" + Math.floor(100 + Math.random() * 900);
+      state.operator = "Gadz-" + Math.floor(100 + Math.random() * 900);
     }
     localStorage.setItem("buques_operator", state.operator);
   }
@@ -263,9 +264,9 @@ function resetEntryForm() {
   state.editingId = null;
   document.getElementById("entry-form").reset();
   document.getElementById("form-mode-title").innerHTML =
-    "Nouvelle feuille de 1<sup>re</sup> année";
+    "Nouvelle fiche de Conscrit (1<sup>re</sup> An'ss)";
   document.getElementById("btn-submit-entry").textContent =
-    "Enregistrer la feuille (Entrée)";
+    "Enregistrer la fiche (Entrée)";
   document.getElementById("edit-banner").classList.add("hidden");
   document.getElementById("duplicate-nom-alert").classList.add("hidden");
   ["preview-choix1", "preview-choix2", "preview-choix3"].forEach((id) => {
@@ -287,8 +288,8 @@ function startEditingEntry(entryId) {
   document.getElementById("input-choix3").value = entry.choix3 || "";
   document.getElementById("input-police3").value = entry.police3 || "";
 
-  document.getElementById("form-mode-title").textContent = "Modifier une feuille";
-  document.getElementById("btn-submit-entry").textContent = "Mettre à jour la feuille";
+  document.getElementById("form-mode-title").textContent = "Modifier une fiche de Conscrit";
+  document.getElementById("btn-submit-entry").textContent = "Mettre à jour la fiche";
   document.getElementById("edit-target-name").textContent = entry.nom;
   document.getElementById("edit-banner").classList.remove("hidden");
 
@@ -691,10 +692,10 @@ function openInspectorDrawer(entryId, choiceIndex) {
   ]);
   body.appendChild(r4Control);
 
-  // Info : PGs anciens (> 10 ans)
+  // Info : PGs anciens (> 10 An'ss)
   if (ch.conflicts.older_pgs && ch.conflicts.older_pgs.length > 0) {
     const olderSec = el("div", { class: "drawer-section" }, [
-      el("h4", { text: "Info : Anciens PGs (> 10 ans, autorisé par la Règle 1)" }),
+      el("h4", { text: "Info : Anciens PGs (> 10 An'ss, autorisé par la Règle 1)" }),
     ]);
     for (const m of ch.conflicts.older_pgs) {
       olderSec.appendChild(
@@ -879,7 +880,7 @@ async function loadBddStatus() {
   cards.appendChild(
     el("div", { class: "bdd-stat-box" }, [
       el("strong", { text: String(stats.total_pgs) }),
-      el("span", { class: "muted", text: "PGs chargés (total)" }),
+      el("span", { class: "muted", text: "PGs Clun'ssois chargés (total)" }),
     ])
   );
   cards.appendChild(
@@ -1069,13 +1070,13 @@ function initEventListeners() {
           method: "PUT",
           body: JSON.stringify(payload),
         });
-        showToast(`Feuille de ${payload.nom} mise à jour.`);
+        showToast(`Fiche de ${payload.nom} mise à jour.`);
       } else {
         await apiFetch("/api/entries", {
           method: "POST",
           body: JSON.stringify(payload),
         });
-        showToast(`Feuille de ${payload.nom} enregistrée !`);
+        showToast(`Fiche de ${payload.nom} enregistrée !`);
       }
 
       const formCard = document.querySelector(".form-card");

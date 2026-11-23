@@ -10,6 +10,8 @@ from pypdf import PdfReader
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
+FONT_FILE = ROOT_DIR / "static" / "fonts" / "clunsois_complet.ttf"
+LOGO_FILE = ROOT_DIR / "static" / "img" / "Amtradszaloeil.svg"
 CHROME_EXE = Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
 OUTPUT_PDF = ROOT_DIR / "Guide_Protocole_Buques_Clunss.pdf"
 
@@ -19,6 +21,12 @@ GUIDE_HTML = r"""<!DOCTYPE html>
 <meta charset="UTF-8" />
 <title>Protocole des Buques &amp; Mode d'Emploi — Tabagn's de Clun'ss</title>
 <style>
+  @font-face {
+    font-family: "Clunsois";
+    src: url("__CLUNSOIS_FONT_URI__") format("truetype");
+    font-weight: 400 700;
+    font-style: normal;
+  }
   @page {
     size: A4;
     margin: 11mm 13mm;
@@ -28,8 +36,8 @@ GUIDE_HTML = r"""<!DOCTYPE html>
     margin: 0;
     font-family: "Segoe UI", Roboto, Arial, sans-serif;
     color: #0f172a;
-    font-size: 9.2pt;
-    line-height: 1.38;
+    font-size: 9.1pt;
+    line-height: 1.36;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -43,9 +51,29 @@ GUIDE_HTML = r"""<!DOCTYPE html>
     background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 65%, #312e81 100%);
     color: #ffffff;
     border-radius: 10px;
-    padding: 14px 18px;
-    margin-bottom: 10px;
+    padding: 12px 16px;
+    margin-bottom: 9px;
     border-bottom: 4px solid #f59e0b;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .hero-logo-wrap {
+    width: 54px;
+    height: 58px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fffbeb, #fde68a);
+    border: 2px solid #f59e0b;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .hero-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
   .hero-kicker {
     font-size: 8.2pt;
@@ -57,17 +85,21 @@ GUIDE_HTML = r"""<!DOCTYPE html>
   }
   .hero h1 {
     margin: 0 0 4px;
-    font-size: 17.5pt;
+    font-family: "Clunsois", "Segoe UI", Roboto, Arial, sans-serif;
+    font-size: 17pt;
+    letter-spacing: 0.015em;
     line-height: 1.15;
   }
   .hero p {
     margin: 0;
     color: #e2e8f0;
-    font-size: 10pt;
+    font-size: 9.8pt;
   }
   .section-title {
-    margin: 12px 0 7px;
+    margin: 10px 0 6px;
+    font-family: "Clunsois", "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 12pt;
+    letter-spacing: 0.015em;
     color: #1e3a8a;
     border-bottom: 2px solid #cbd5e1;
     padding-bottom: 3px;
@@ -76,6 +108,7 @@ GUIDE_HTML = r"""<!DOCTYPE html>
     align-items: baseline;
   }
   .section-title span.tag {
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
     font-size: 8pt;
     color: #64748b;
     font-weight: 700;
@@ -86,8 +119,8 @@ GUIDE_HTML = r"""<!DOCTYPE html>
     border: 1px solid #cbd5e1;
     border-left: 4px solid #1d4ed8;
     border-radius: 6px;
-    padding: 9px 12px;
-    margin: 8px 0 11px;
+    padding: 8px 11px;
+    margin: 7px 0 10px;
   }
   .callout-gold {
     background: #fffbeb;
@@ -97,22 +130,23 @@ GUIDE_HTML = r"""<!DOCTYPE html>
   .rules-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 7px;
-    margin-top: 6px;
+    gap: 6px;
+    margin-top: 5px;
   }
   .rule-card {
     border-radius: 7px;
-    padding: 8px 11px;
+    padding: 7px 10px;
     border: 1px solid rgba(15, 23, 42, 0.1);
     display: flex;
     gap: 10px;
     align-items: flex-start;
   }
   .rule-badge {
-    min-width: 72px;
+    min-width: 74px;
     text-align: center;
+    font-family: "Clunsois", "Segoe UI", Roboto, Arial, sans-serif;
     font-weight: 800;
-    font-size: 8.5pt;
+    font-size: 8.6pt;
     padding: 3px 6px;
     border-radius: 5px;
     background: rgba(255, 255, 255, 0.72);
@@ -172,8 +206,9 @@ GUIDE_HTML = r"""<!DOCTYPE html>
   }
   .box h4 {
     margin: 0 0 5px;
+    font-family: "Clunsois", "Segoe UI", Roboto, Arial, sans-serif;
     color: #0f172a;
-    font-size: 10pt;
+    font-size: 10.3pt;
   }
   ul, ol {
     margin: 4px 0 6px;
@@ -197,9 +232,14 @@ GUIDE_HTML = r"""<!DOCTYPE html>
 <!-- ==================== PAGE 1 ==================== -->
 <div class="page">
   <div class="hero">
-    <div class="hero-kicker">Tabagn's de Clun'ss · Arts &amp; Métiers</div>
-    <h1>Protocole des Buques &amp; Guide du Vérificateur</h1>
-    <p>Traditions du bûquage des Conscrits, règles clun'ssoises et prise en main complète de l'application.</p>
+    <div class="hero-logo-wrap">
+      <img src="__AMTRAD_LOGO_URI__" alt="AMTrad'ss" class="hero-logo" />
+    </div>
+    <div>
+      <div class="hero-kicker">Tabagn's de Clun'ss · AMTrad'ss · Arts &amp; Métiers</div>
+      <h1>Protocole des Buques &amp; Guide du Vérificateur</h1>
+      <p>Traditions du bûquage des Conscrits, règles clun'ssoises et prise en main complète de l'application.</p>
+    </div>
   </div>
 
   <div class="callout callout-gold">
@@ -489,10 +529,19 @@ GUIDE_HTML = r"""<!DOCTYPE html>
 def generate_pdf() -> Path:
     if not CHROME_EXE.exists():
         raise FileNotFoundError(f"Chrome introuvable : {CHROME_EXE}")
+    if not FONT_FILE.exists():
+        raise FileNotFoundError(f"Police Clunsois introuvable : {FONT_FILE}")
+    if not LOGO_FILE.exists():
+        raise FileNotFoundError(f"Logo AMTrad'ss introuvable : {LOGO_FILE}")
+
+    html_content = (
+        GUIDE_HTML.replace("__CLUNSOIS_FONT_URI__", FONT_FILE.resolve().as_uri())
+        .replace("__AMTRAD_LOGO_URI__", LOGO_FILE.resolve().as_uri())
+    )
 
     with tempfile.TemporaryDirectory() as tmp:
         html_path = Path(tmp) / "guide.html"
-        html_path.write_text(GUIDE_HTML, encoding="utf-8")
+        html_path.write_text(html_content, encoding="utf-8")
 
         cmd = [
             str(CHROME_EXE),

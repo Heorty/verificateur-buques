@@ -1,5 +1,15 @@
+@font-face {
+  font-family: "Clunsois";
+  src: url("/static/fonts/clunsois_complet.ttf") format("truetype");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --bg: #f4f6f9;
+  --font-clunsois: "Clunsois", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  --bg: #f6f4ef;
   --surface: #ffffff;
   --surface-alt: #f8fafc;
   --border: #e2e8f0;
@@ -7,6 +17,8 @@
   --muted: #64748b;
   --primary: #1d4ed8;
   --primary-hover: #1e40af;
+  --gold: #d97706;
+  --gold-light: #fcd34d;
 
   --c-rouge-bg: #ffc7ce;
   --c-rouge-fg: #9c0006;
@@ -39,9 +51,18 @@
   box-sizing: border-box;
 }
 
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  font-family: var(--font-clunsois);
+  font-size: 16px;
+  letter-spacing: 0.015em;
   background: var(--bg);
   color: var(--text);
   line-height: 1.45;
@@ -62,7 +83,7 @@ kbd {
   border-radius: 4px;
   padding: 0.1rem 0.35rem;
   font-size: 0.8em;
-  font-family: inherit;
+  font-family: var(--font-ui);
 }
 
 code {
@@ -70,7 +91,8 @@ code {
   color: #3730a3;
   padding: 0.1rem 0.35rem;
   border-radius: 4px;
-  font-size: 0.88em;
+  font-size: 0.86em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 /* Topbar */
@@ -80,6 +102,7 @@ code {
   position: sticky;
   top: 0;
   z-index: 30;
+  border-bottom: 3px solid var(--gold);
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.2);
 }
 
@@ -100,30 +123,38 @@ code {
   gap: 0.75rem;
 }
 
-.brand-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
+.brand-logo-wrap {
+  width: 46px;
+  height: 50px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fffbeb, #fde68a);
+  border: 2px solid var(--gold);
+  padding: 4px;
   display: grid;
   place-items: center;
-  font-weight: 800;
-  font-size: 0.95rem;
-  letter-spacing: 0.03em;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brand h1 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .badge-proms {
-  background: rgba(96, 165, 250, 0.2);
-  color: #93c5fd;
-  border: 1px solid rgba(147, 197, 253, 0.35);
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--gold-light);
+  border: 1px solid rgba(252, 211, 77, 0.4);
   border-radius: 999px;
   padding: 0.1rem 0.55rem;
   font-size: 0.78rem;
@@ -228,7 +259,7 @@ code {
 
 .tab-btn.active {
   color: #ffffff;
-  border-bottom-color: #60a5fa;
+  border-bottom-color: #f59e0b;
 }
 
 .tab-badge {
@@ -270,7 +301,7 @@ code {
 
 .card h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.22rem;
 }
 
 .card-header {
@@ -415,6 +446,7 @@ select:focus {
   padding: 0.22rem 0.5rem;
   font-size: 0.82rem;
   font-weight: 600;
+  font-family: var(--font-ui);
   cursor: pointer;
   color: #1e293b;
 }
@@ -611,7 +643,7 @@ select:focus {
 }
 
 .kpi-val {
-  font-size: 1.55rem;
+  font-size: 1.7rem;
   font-weight: 800;
   line-height: 1.1;
 }
@@ -794,7 +826,7 @@ select:focus {
 
 .cell-main {
   font-weight: 700;
-  font-size: 0.96rem;
+  font-size: 1.05rem;
 }
 
 .cell-police {
@@ -857,7 +889,7 @@ select:focus {
 
 .drawer-buque {
   margin: 0.2rem 0 0;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
 }
 
 .drawer-body {

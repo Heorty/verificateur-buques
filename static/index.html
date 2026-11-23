@@ -3,41 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vérificateur de Buques — Clun'ss</title>
+  <title>Vérificateur de Buques — Tabagn's de Clun'ss</title>
+  <link rel="icon" type="image/svg+xml" href="/static/img/Amtradszaloeil.svg" />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
   <header class="topbar no-print">
     <div class="topbar-inner">
       <div class="brand">
-        <div class="brand-mark">A&amp;M</div>
+        <div class="brand-logo-wrap">
+          <img src="/static/img/Amtradszaloeil.svg" alt="Logo AMTrad'ss" class="brand-logo" />
+        </div>
         <div>
           <h1>Vérificateur de Buques <span id="header-proms-badge" class="badge-proms">Cl226</span></h1>
-          <p class="subtitle">Saisie collaborative &amp; vérification phonétique des buques Clun'ss</p>
+          <p class="subtitle">Tabagn's de Clun'ss · Saisie collaborative &amp; vérif' phonétique du bûquage</p>
         </div>
       </div>
 
       <div class="collab-bar">
-        <button id="btn-share-lan" type="button" class="pill pill-action" title="Copier l'adresse Wi-Fi pour les autres opérateurs">
+        <button id="btn-share-lan" type="button" class="pill pill-action" title="Copier l'adresse Wi-Fi pour les autres Gadz'">
           <span class="dot-lan"></span>
           <span id="lan-url-label">Partager sur le Wi-Fi…</span>
         </button>
 
-        <div class="pill pill-presence" id="presence-pill" title="Opérateurs connectés en direct">
+        <div class="pill pill-presence" id="presence-pill" title="Gadz' connectés en direct">
           <span id="ws-status-dot" class="ws-dot offline"></span>
           <span id="presence-count">Connexion…</span>
           <span id="presence-names" class="presence-names"></span>
         </div>
 
-        <button id="btn-operator" type="button" class="pill pill-operator" title="Changer votre nom d'opérateur">
-          Opérateur : <strong id="operator-name-display">Anonyme</strong> ✎
+        <button id="btn-operator" type="button" class="pill pill-operator" title="Changer ta buque / ton prénom de Gadz'">
+          Gadz' : <strong id="operator-name-display">Anonyme</strong> ✎
         </button>
       </div>
     </div>
 
     <nav class="tabs-bar" aria-label="Navigation principale">
       <button type="button" class="tab-btn active" data-tab="saisie">
-        1. Saisie des feuilles <span id="tab-badge-entries" class="tab-badge">0</span>
+        1. Saisie des fiches <span id="tab-badge-entries" class="tab-badge">0</span>
       </button>
       <button type="button" class="tab-btn" data-tab="comparaison">
         2. Comparaison &amp; Export <span id="tab-badge-conflicts" class="tab-badge warn">0</span>
@@ -57,8 +60,8 @@
       <div class="card form-card no-print">
         <div class="card-header">
           <div>
-            <h2 id="form-mode-title">Nouvelle feuille de 1<sup>re</sup> année</h2>
-            <p class="muted">Nom → <kbd>Tab</kbd> → Choix 1 → 2 → 3 → Police 1 → 2 → 3 → <kbd>Entrée</kbd> (taper <code>^T</code> insère automatiquement <code>ᵀ</code>).</p>
+            <h2 id="form-mode-title">Nouvelle fiche de Conscrit (1<sup>re</sup> An'ss)</h2>
+            <p class="muted">Nom de Pek's → <kbd>Tab</kbd> → Choix 1 → 2 → 3 → Police 1 → 2 → 3 → <kbd>Entrée</kbd> (taper <code>^T</code> insère <code>ᵀ</code>).</p>
           </div>
           <div id="edit-banner" class="edit-banner hidden">
             <span>Modification de <strong id="edit-target-name"></strong></span>
@@ -70,11 +73,11 @@
           <div class="sheet-grid">
             <!-- RECTO -->
             <div class="sheet-side sheet-recto">
-              <div class="side-label">RECTO — Identité &amp; 3 choix ordonnés</div>
+              <div class="side-label">RECTO — Identité du Conscrit &amp; 3 buques ordonnées</div>
 
               <div class="form-row-2">
                 <div class="field">
-                  <label for="input-nom">Nom de famille <span class="req">*</span></label>
+                  <label for="input-nom">Nom de Pek's (famille) <span class="req">*</span></label>
                   <input id="input-nom" name="nom" type="text" required placeholder="Ex : MARTIN" autocomplete="off" />
                   <div id="duplicate-nom-alert" class="inline-alert hidden"></div>
                 </div>
@@ -136,7 +139,7 @@
 
               <div class="form-actions-verso">
                 <button type="submit" id="btn-submit-entry" class="btn btn-primary btn-lg">
-                  Enregistrer la feuille (Entrée)
+                  Enregistrer la fiche (Entrée)
                 </button>
                 <button type="button" id="btn-clear-form" class="btn btn-ghost">Vider</button>
               </div>
@@ -150,17 +153,17 @@
       <div class="card">
         <div class="card-header wrap">
           <div>
-            <h2>Feuilles enregistrées (<span id="entries-count-text">0</span>)</h2>
-            <p class="muted">Synchronisé en temps réel entre tous les opérateurs connectés.</p>
+            <h2>Fiches de Conscrits saisies (<span id="entries-count-text">0</span>)</h2>
+            <p class="muted">Synchronisé en temps réel entre tous les Gadz' connectés au Tabagn's.</p>
           </div>
           <div class="toolbar">
-            <input id="entries-search" type="search" class="search-input" placeholder="Filtrer par nom ou buque…" />
+            <input id="entries-search" type="search" class="search-input" placeholder="Filtrer par nom de Pek's ou buque…" />
             <label class="btn btn-secondary btn-file">
               Importer CSV
               <input id="entries-csv-file" type="file" accept=".csv,.txt" hidden />
             </label>
             <button type="button" id="btn-go-compare" class="btn btn-primary">
-              Passer à la comparaison →
+              Passer au bûquage (Comparaison) →
             </button>
           </div>
         </div>
@@ -188,15 +191,15 @@
       <div class="kpi-grid no-print" id="kpi-grid">
         <button type="button" class="kpi-card" data-filter="all">
           <span class="kpi-val" id="kpi-students">0</span>
-          <span class="kpi-lbl">Étudiants</span>
+          <span class="kpi-lbl">Conscrits</span>
         </button>
         <button type="button" class="kpi-card kpi-vert" data-filter="vert">
           <span class="kpi-val" id="kpi-vert">0</span>
-          <span class="kpi-lbl">Vert · Utilisable</span>
+          <span class="kpi-lbl">Vert · Validée</span>
         </button>
         <button type="button" class="kpi-card kpi-rouge" data-filter="rouge">
           <span class="kpi-val" id="kpi-rouge">0</span>
-          <span class="kpi-lbl">Rouge · Règle 1 (&lt;10 ans)</span>
+          <span class="kpi-lbl">Rouge · Règle 1 (&lt;10 An'ss)</span>
         </button>
         <button type="button" class="kpi-card kpi-violet" data-filter="violet">
           <span class="kpi-val" id="kpi-violet">0</span>
@@ -212,7 +215,7 @@
         </button>
         <button type="button" class="kpi-card kpi-warn" data-filter="no_green">
           <span class="kpi-val" id="kpi-no-green">0</span>
-          <span class="kpi-lbl">Sans aucun choix vert</span>
+          <span class="kpi-lbl">Conscrits sans choix vert</span>
         </button>
       </div>
 
@@ -274,12 +277,12 @@
 
         <div class="print-legend">
           <strong>Légende :</strong>
-          <span class="legend-chip c-rouge">Rouge : Règle 1 (&lt; 10 ans)</span>
+          <span class="legend-chip c-rouge">Rouge : Règle 1 (&lt; 10 An'ss)</span>
           <span class="legend-chip c-violet">Violet : Règle 2 (CT)</span>
-          <span class="legend-chip c-jaune">Jaune : Règle 3 (Même prom'ss)</span>
+          <span class="legend-chip c-jaune">Jaune : Règle 3 (Même Prom'ss)</span>
           <span class="legend-chip c-orange">Orange : Règle 4 (Problématique)</span>
-          <span class="legend-chip c-vert">Vert : Utilisable</span>
-          <span class="muted no-print">· Cliquez sur une cellule pour inspecter ou ignorer un faux positif.</span>
+          <span class="legend-chip c-vert">Vert : Validée (Utilisable)</span>
+          <span class="muted no-print">· Cliquez sur une case pour inspecter ou écarter un faux positif.</span>
         </div>
 
         <div class="table-wrap">
@@ -301,10 +304,10 @@
     <!-- ==================== ONGLET 3 : TESTEUR PHONÉTIQUE ==================== -->
     <section id="tab-testeur" class="tab-panel">
       <div class="card">
-        <h2>Testeur phonétique &amp; notations Clun'ss</h2>
+        <h2>Testeur phonétique &amp; notations clun'ssoises</h2>
         <p class="muted">
           Testez instantanément l'interprétation des parenthèses <code>(arts)</code>, transposées <code>ᵀ</code>,
-          puissances <code>^0</code> / <code>²</code> (« karse » ou ×2) et vérifiez les conflits potentiels avant validation.
+          puissances <code>^0</code> / <code>²</code> (« karse » ou ×2) et vérifiez les conflits du Tabagn's avant le bûquage.
         </p>
 
         <div class="tester-box">
@@ -341,7 +344,7 @@
     <section id="tab-bdd" class="tab-panel">
       <div class="bdd-grid">
         <div class="card">
-          <h2>État des bases de données de référence</h2>
+          <h2>Base de référence du Tabagn's</h2>
           <div id="bdd-default-banner" class="inline-alert hidden"></div>
           <div id="bdd-health-cards" class="bdd-stats-row"></div>
           <div id="bdd-proms-coverage" class="proms-coverage"></div>
@@ -349,15 +352,15 @@
         </div>
 
         <div class="card">
-          <h2>Paramètres généraux</h2>
+          <h2>Paramètres du bûquage</h2>
           <form id="settings-form" class="settings-form">
             <div class="form-row-2">
               <div class="field">
-                <label for="set-current-proms">Prom's en cours (1<sup>re</sup> année)</label>
+                <label for="set-current-proms">Prom'ss en cours (Conscrits 1A)</label>
                 <input id="set-current-proms" type="number" min="100" max="999" required />
               </div>
               <div class="field">
-                <label for="set-rule1-years">Fenêtre Règle 1 (années)</label>
+                <label for="set-rule1-years">Fenêtre Règle 1 (An'ss)</label>
                 <input id="set-rule1-years" type="number" min="1" max="100" required />
               </div>
             </div>
@@ -378,7 +381,7 @@
 
       <div class="bdd-grid">
         <div class="card">
-          <h2>Recherche dans la BDD (PGs &amp; CTs)</h2>
+          <h2>Recherche dans les PGs &amp; CTs du Tabagn's</h2>
           <div class="toolbar">
             <input id="bdd-search-input" type="search" class="search-input" placeholder="Nom, buque, ou écriture phonétique…" />
             <select id="bdd-search-kind">
