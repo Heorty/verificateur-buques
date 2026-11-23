@@ -509,6 +509,21 @@ select:focus {
   border-color: #818cf8;
 }
 
+.sym-btn.sym-clunsois {
+  font-family: var(--font-clunsois);
+  font-size: 0.98rem;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.sym-hint {
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .form-actions-verso {
   margin-top: auto;
   padding-top: 0.75rem;

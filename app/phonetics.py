@@ -54,6 +54,9 @@ _SYMBOL_MAP = {
     "Œ": "eu",
     "ø": "eu",
     "Ø": "eu",
+    "Ž": "za",
+    "ž": "za",
+    "ÿ": "am",
 }
 
 _PRONONCE_RE = re.compile(r"\(\s*prononc[eé]\s+([^)]+)\)", re.IGNORECASE)
@@ -198,7 +201,7 @@ def expand_buque_notations(raw: str) -> tuple[list[str], list[str]]:
     """
     Développe les notations spéciales Arts & Métiers / Clun'ss :
     - H2O -> o
-    - Symboles grecs & mathématiques (π->pi, φ->fi, Ω->o, ∞->oo, ...)
+    - Symboles & ligatures Clun'ssois (π->pi, φ->fi, Ω->o, ∞->oo, Ž->za, ÿ->am, ...)
     - (mot)^0 / ^0 / ⁰ -> supprimé (ne se lit pas)
     - (mot)^T / ᵗ / ᵀ / ⊤ / **T -> inversé (se lit à l'envers)
     - mot² / (mot)² -> double lecture : répétition ×2 du mot/groupe ET lecture « karse »

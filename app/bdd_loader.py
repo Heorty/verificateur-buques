@@ -138,7 +138,7 @@ def _is_valid_buque(val: str) -> bool:
         return False
     if s.upper() == "DEMISSIONNAIRE":
         return False
-    if not re.search(r"[A-Za-zÀ-ÿ0-9πΠφΦΩωαΑτΤμµ∞€$]", s):
+    if not re.search(r"[A-Za-zÀ-ÿŽž0-9πΠφΦΩωαΑτΤμµ∞€$]", s):
         return False
     return True
 

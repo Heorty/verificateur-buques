@@ -92,6 +92,8 @@ class TestPhonetics(unittest.TestCase):
         self.assertTrue(all(b.get("tabindex") == "-1" for b in parser.sym_btns))
         inserts = [b.get("data-insert") for b in parser.sym_btns]
         self.assertIn("ᵀ", inserts)
+        self.assertIn("Ž", inserts)
+        self.assertIn("ÿ", inserts)
         self.assertNotIn("^T", inserts)
 
     def test_square_double_and_karse_readings(self):
@@ -181,6 +183,37 @@ class TestPhonetics(unittest.TestCase):
                 matched and best >= min_score,
                 f"Échec sur {a} vs {b} -> best={best} (ortho={ortho}, phon={phon}, {pa.phonetic_readings} vs {pb.phonetic_readings})",
             )
+
+    def test_clunsois_za_and_am_notations(self):
+        pairs = [
+            ("BaŽr", "Bazar"),
+            ("BaŽr", "Bas(art)"),
+            ("PiŽ", "Pizza"),
+            ("B(arts)Ž", "Barza"),
+            ("Ž²", "Zaza"),
+            ("Ž²", "Zakarse"),
+            ("(Ž)ᵀ", "Az"),
+            ("bažr", "Bazar"),
+            ("ÿTrad'ss", "AMTrad'ss"),
+            ("ÿour", "Amour"),
+            ("Cÿille", "Camille"),
+            ("Sÿmy", "Sammy"),
+            ("ÿ²", "Amam"),
+            ("ÿ²", "Amkarse"),
+            ("(ÿ)ᵀ", "Ma"),
+        ]
+        for expr, target in pairs:
+            p1 = phonetics.build_profile(expr)
+            p2 = phonetics.build_profile(target)
+            matched, best, ortho, phon = phonetics.is_match(p1, p2, 0.90, mode="r12")
+            self.assertTrue(
+                matched and best >= 0.95,
+                f"{expr} devrait correspondre à {target} (reçu {p1.expanded_readings}, score={best}, ortho={ortho}, phon={phon})",
+            )
+
+        self.assertTrue(bdd_loader._is_valid_buque("Ž"))
+        self.assertTrue(bdd_loader._is_valid_buque("Ž²"))
+        self.assertTrue(bdd_loader._is_valid_buque("ÿ"))
 
     def test_short_string_false_positive_guard(self):
         for a, b in [("Bob", "Rob"), ("Sam", "Tam")]:
@@ -511,11 +544,13 @@ class TestComparatorAndExporter(unittest.TestCase):
         r_martin = row_by_nom["Martin"]
         self.assertEqual(ws1.cell(r_martin, 2).fill.start_color.rgb[-6:], "FFD8A8")  # Orange
 
-        # Vérification des règles avec lecture « karse » sur ²
+        # Vérification des règles avec lecture « karse » sur ² et ligature Ž
         res_mou2 = comparator.evaluate_single_buque("Mou²", entries, self.bdd, self.settings, self.terms)
         self.assertEqual(res_mou2["color"], "violet")  # Match CT Cl222 Moukars
         res_ba2 = comparator.evaluate_single_buque("Ba²", entries, self.bdd, self.settings, self.terms)
         self.assertEqual(res_ba2["color"], "rouge")  # Match CL225 Bacars
+        res_bazr = comparator.evaluate_single_buque("BaŽr", entries, self.bdd, self.settings, self.terms)
+        self.assertEqual(res_bazr["color"], "violet")  # Match CT Bazar (Ž = za)
 
     def test_performance_180_students(self):
         pool = [r.buque for r in self.bdd.pg_records if r.proms and 195 <= r.proms <= 205][:540]
