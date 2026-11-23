@@ -7,9 +7,14 @@ import base64
 import csv
 import io
 import json
+import mimetypes
 from pathlib import Path
 import socket
 from typing import Any
+
+mimetypes.add_type("font/ttf", ".ttf")
+mimetypes.add_type("font/woff", ".woff")
+mimetypes.add_type("font/woff2", ".woff2")
 
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -144,7 +149,10 @@ async def websocket_endpoint(ws: WebSocket) -> None:
 
 
 async def index_page(request: Request) -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(
+        STATIC_DIR / "index.html",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 async def api_network_info(request: Request) -> JSONResponse:

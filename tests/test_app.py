@@ -228,6 +228,9 @@ class TestBddLoader(unittest.TestCase):
             self.assertEqual(proms_by_buque["MaitreTrad"], 224)
             self.assertEqual(proms_by_buque["AncienSage"], 198)
             self.assertEqual(proms_by_buque["SansCT"], 224)
+            fams_by_buque = {r.buque: r.fams for r in idx.pg_records}
+            self.assertEqual(fams_by_buque["Zylphoria"], "12")
+            self.assertEqual(fams_by_buque["MaitreTrad"], "45")
 
             # 3) Fichier CSV point-virgule
             csv_bytes = "Buque;Prom'ss;CT\nCsvTest;225;0\nCsvCT;2000;1\n".encode("utf-8")
@@ -249,24 +252,117 @@ class TestBddLoader(unittest.TestCase):
 
         self.assertTrue(idx.default_file_loaded)
         self.assertEqual(idx.default_file_name, "Liste_PGs_Clun_ssois.xlsx")
-        self.assertGreater(len(idx.pg_records), 9500)
-        cl225 = [r for r in idx.pg_records if r.proms == 225]
-        self.assertGreater(len(cl225), 150)
+        self.assertGreater(len(idx.pg_records), 9800)
+        stats = idx.get_stats(current_proms=226, rule1_years=10)
+        self.assertEqual(stats["missing_recent_proms"], [])
+        for p in (222, 223, 224, 225):
+            self.assertGreater(stats["recent_proms_counts"][str(p)], 150, f"Prom's Cl{p} incomplète")
         self.assertGreater(len(idx.ct_records), 350)
 
-        # Vérifier qu'il n'y a aucun doublon (visual_clean, proms) dans Liste_PGs_Clun_ssois.xlsx
+        # Vérifier les colonnes principales, les lignes multi-Fam's indépendantes et l'absence de doublons exacts
         wb = load_workbook(bdd_loader.DEFAULT_BDD_FILE, read_only=True, data_only=True)
         ws = wb.active
+        rows_iter = list(ws.iter_rows(values_only=True))
+        header = list(rows_iter[0])
+        self.assertEqual(
+            header[:9],
+            ["Buque", "Prom'ss", "Année d'entrée", "Sortie", "CT", "Année CT", "Nom", "Prénom", "Fam's"],
+        )
+        data_rows = rows_iter[1:]
+        self.assertGreater(len(data_rows), 10600)
+
         seen_keys = set()
-        for row in list(ws.iter_rows(values_only=True))[1:]:
+        for row in data_rows:
             buque = str(row[0] or "").strip()
             proms = row[1]
             annee = str(row[2] or "").strip()
+            nom = bdd_loader._normalize_header(str(row[6] or ""))
+            fams_norm = bdd_loader._normalize_header(str(row[8] or ""))
             vis = phonetics.normalize_visual(buque)
-            key = (vis, proms, annee if not proms else "")
+            key = (vis, proms, nom, fams_norm, annee if not proms else "")
             self.assertNotIn(key, seen_keys, f"Doublon détecté dans le xlsx unifié : {row}")
             seen_keys.add(key)
+
+        # Multi-Fam's sur lignes indépendantes dans le .xlsx vs fusion propre en mémoire
+        sammy_vis = phonetics.normalize_visual("SAMMY")
+        sammy_rows = [
+            r for r in data_rows
+            if phonetics.normalize_visual(str(r[0] or "")) == sammy_vis
+            and r[1] == 177
+            and bdd_loader._normalize_header(str(r[6] or "")) == "simon"
+        ]
+        self.assertEqual(len(sammy_rows), 4)
+        self.assertEqual({str(r[8]).strip() for r in sammy_rows}, {"3", "4", "23", "27"})
+        mem_sammy = [
+            r for r in idx.pg_records
+            if r.proms == 177 and r.profile.visual_clean == sammy_vis
+            and bdd_loader._normalize_header(r.nom) == "simon"
+        ]
+        self.assertEqual(len(mem_sammy), 1)
+        self.assertEqual({x.strip() for x in mem_sammy[0].fams.split(",")}, {"3", "4", "23", "27"})
+
+        minus_vis = phonetics.normalize_visual("MINUS")
+        minus_rows = [
+            r for r in data_rows
+            if phonetics.normalize_visual(str(r[0] or "")) == minus_vis
+            and r[1] == 146
+            and bdd_loader._normalize_header(str(r[6] or "")) == "meynardi"
+        ]
+        self.assertEqual(len(minus_rows), 2)
+        self.assertEqual({str(r[8]).strip() for r in minus_rows}, {"45", "50"})
+        self.assertTrue(all(r[4] == "Vrai" for r in minus_rows))
+        mem_minus = [
+            r for r in idx.ct_records
+            if r.proms == 146 and r.profile.visual_clean == minus_vis
+        ]
+        self.assertEqual(len(mem_minus), 1)
+        mem_minus_fams = {x.strip() for x in mem_minus[0].fams.replace("-", ",").split(",") if x.strip()}
+        self.assertTrue({"45", "50"}.issubset(mem_minus_fams))
+
+        mac_vis = phonetics.normalize_visual("MAC LEOD")
+        mac_rows = [
+            r for r in data_rows
+            if phonetics.normalize_visual(str(r[0] or "")) == mac_vis
+            and r[1] == 195
+            and bdd_loader._normalize_header(str(r[6] or "")) == "vernoit"
+        ]
+        self.assertEqual(len(mac_rows), 1)
+        self.assertEqual(mac_rows[0][4], "Vrai")
+        self.assertEqual(str(mac_rows[0][8]).strip(), "13-40")
+
+        chartsu_vis = phonetics.normalize_visual("Ch(Arts)u")
+        chartsu_rows = [
+            r for r in data_rows
+            if phonetics.normalize_visual(str(r[0] or "")) == chartsu_vis and r[1] == 220
+        ]
+        self.assertEqual(len(chartsu_rows), 1)
+        self.assertEqual(str(chartsu_rows[0][8]).strip(), "95-1")
+
+        huracan_vis = phonetics.normalize_visual("Huracan")
+        huracan_rows = [
+            r for r in data_rows
+            if phonetics.normalize_visual(str(r[0] or "")) == huracan_vis and r[1] == 219
+        ]
+        self.assertEqual(len(huracan_rows), 2)
+        self.assertTrue(all(str(r[6] or "").strip() for r in huracan_rows))
+        huracan_by_nom = {
+            bdd_loader._normalize_header(str(r[6] or "")): str(r[8] or "").strip()
+            for r in huracan_rows
+        }
+        self.assertEqual(huracan_by_nom, {"amand": "161", "chaillet": "11-161"})
+
+        if len(header) >= 10 and header[9] == "Sources":
+            only_chk_buques = [
+                str(r[0] or "").strip()
+                for r in data_rows
+                if str(r[9] or "").strip() == "Check buque 2.22"
+            ]
+            self.assertEqual(only_chk_buques, ["Accoudoir"])
         wb.close()
+
+        pg_names = {r.buque for r in idx.pg_records}
+        for sample_pg in ("Cerbère", "Hoarah", "Accoudoir", "Pompl(Arts)"):
+            self.assertIn(sample_pg, pg_names)
 
         ct_names = {r.buque for r in idx.ct_records}
         ct_phonetics = {ph for r in idx.ct_records for ph in r.profile.phonetic_readings}
@@ -475,11 +571,15 @@ class TestEndToEndServerAndWebSocket(unittest.TestCase):
                 else:
                     self.fail("Le serveur Uvicorn n'a pas démarré à temps.")
 
-                # Vérifier l'accueil HTML, le CSS, la police Clunsois et le logo AMTrad'ss
+                # Vérifier l'accueil HTML, le CSS, la police Clunsois, le logo AMTrad'ss et le responsive
                 r_home = requests.get(base + "/", timeout=2)
                 self.assertEqual(r_home.status_code, 200)
+                self.assertEqual(r_home.headers.get("cache-control"), "no-cache")
                 self.assertIn("Vérificateur de Buques", r_home.text)
                 self.assertIn("/static/img/Amtradszaloeil.svg", r_home.text)
+                self.assertIn("viewport-fit=cover", r_home.text)
+                self.assertIn("color-scheme", r_home.text)
+                self.assertIn('width="28" height="36"', r_home.text)
 
                 r_logo = requests.get(base + "/static/img/Amtradszaloeil.svg", timeout=2)
                 self.assertEqual(r_logo.status_code, 200)
@@ -487,11 +587,23 @@ class TestEndToEndServerAndWebSocket(unittest.TestCase):
 
                 r_css = requests.get(base + "/static/styles.css", timeout=2)
                 self.assertEqual(r_css.status_code, 200)
-                self.assertIn("clunsois_complet.ttf", r_css.text)
+                self.assertIn("./fonts/clunsois_complet.ttf", r_css.text)
+                self.assertIn("font-weight: normal", r_css.text)
+                self.assertIn("color-scheme: light", r_css.text)
                 self.assertIn('"Clunsois"', r_css.text)
+                self.assertIn("overflow: hidden", r_css.text)
+                self.assertIn("width: 28px", r_css.text)
+                self.assertIn(".filter-pill.pill-rouge", r_css.text)
+                self.assertIn(".filter-pill.pill-violet", r_css.text)
+                self.assertIn(".filter-pill.pill-jaune", r_css.text)
+                self.assertIn(".filter-pill.pill-orange", r_css.text)
+                self.assertIn(".filter-pill.pill-vert", r_css.text)
+                self.assertIn("@media screen and (max-width: 720px)", r_css.text)
+                self.assertIn("88dvh", r_css.text)
 
                 r_font = requests.get(base + "/static/fonts/clunsois_complet.ttf", timeout=2)
                 self.assertEqual(r_font.status_code, 200)
+                self.assertTrue(r_font.headers.get("content-type", "").startswith("font/ttf"))
                 self.assertTrue(r_font.content.startswith(b"\x00\x01\x00\x00"))
 
                 # Connecter 2 clients WebSocket simultanés

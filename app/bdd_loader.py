@@ -44,6 +44,8 @@ class BddRecord:
     annee: str
     source: str
     profile: PhoneticProfile
+    sortie: str = ""
+    ct_info: str = ""
 
 
 @dataclass
@@ -254,12 +256,27 @@ def _detect_columns(header_row: list[Any]) -> dict[str, int | None] | None:
         ),
         None,
     )
+    col_sortie = next(
+        (
+            i
+            for i, h in enumerate(norm)
+            if h in {"sortie", "annee de sortie", "proms sortie", "prom s sortie", "prom ss sortie"}
+        ),
+        None,
+    )
+    col_ct_info = next(
+        (i for i, h in enumerate(norm) if h in {"annee ct", "annees ct", "info ct", "mandat ct"}),
+        None,
+    )
     col_year = next(
         (
             i
             for i, h in enumerate(norm)
-            if h in {"annee", "annees", "annee dentree", "annee entree", "anss", "year", "entree"}
-            or "annee" in h.split()
+            if i not in {col_sortie, col_ct_info}
+            and (
+                h in {"annee", "annees", "annee dentree", "annee d entree", "annee entree", "anss", "an ss", "year", "entree"}
+                or "annee" in h.split()
+            )
         ),
         None,
     )
@@ -267,9 +284,12 @@ def _detect_columns(header_row: list[Any]) -> dict[str, int | None] | None:
         (
             i
             for i, h in enumerate(norm)
-            if h in {"ct", "est ct", "is ct", "comite", "comite des traditions"}
-            or "ct" in h.split()
-            or "traditions" in h.split()
+            if i != col_ct_info
+            and (
+                h in {"ct", "est ct", "is ct", "comite", "comite des traditions"}
+                or "ct" in h.split()
+                or "traditions" in h.split()
+            )
         ),
         None,
     )
@@ -277,7 +297,7 @@ def _detect_columns(header_row: list[Any]) -> dict[str, int | None] | None:
         (
             i
             for i, h in enumerate(norm)
-            if h in {"nom", "noms", "nom de famille", "nom de peks", "patronyme"}
+            if h in {"nom", "noms", "nom de famille", "nom de peks", "nom de pek s", "patronyme"}
         ),
         None,
     )
@@ -285,7 +305,7 @@ def _detect_columns(header_row: list[Any]) -> dict[str, int | None] | None:
         (i for i, h in enumerate(norm) if h in {"prenom", "prenoms"}), None
     )
     col_fams = next(
-        (i for i, h in enumerate(norm) if h in {"fams", "famille", "familles"}), None
+        (i for i, h in enumerate(norm) if h in {"fams", "fam s", "fam", "famille", "familles"}), None
     )
 
     return {
@@ -296,6 +316,8 @@ def _detect_columns(header_row: list[Any]) -> dict[str, int | None] | None:
         "nom": col_nom,
         "prenom": col_prenom,
         "fams": col_fams,
+        "sortie": col_sortie,
+        "ct_info": col_ct_info,
     }
 
 
@@ -369,6 +391,8 @@ def parse_unified_table(
         nom = _cell_to_str(row[cols["nom"]]) if cols["nom"] is not None and cols["nom"] < len(row) else ""
         prenom = _cell_to_str(row[cols["prenom"]]) if cols["prenom"] is not None and cols["prenom"] < len(row) else ""
         fams = _cell_to_str(row[cols["fams"]]) if cols["fams"] is not None and cols["fams"] < len(row) else ""
+        sortie = _cell_to_str(row[cols["sortie"]]) if cols.get("sortie") is not None and cols["sortie"] < len(row) else ""
+        ct_info = _cell_to_str(row[cols["ct_info"]]) if cols.get("ct_info") is not None and cols["ct_info"] < len(row) else ""
 
         out.append(
             {
@@ -380,6 +404,8 @@ def parse_unified_table(
                 "fams": fams,
                 "proms": proms_val,
                 "annee": annee_val,
+                "sortie": sortie,
+                "ct_info": ct_info,
                 "batch_name": batch_name,
             }
         )
@@ -427,10 +453,20 @@ def generate_bdd_template_xlsx() -> bytes:
 
 # --- Parseurs historiques conservés pour la compilation vers Liste_PGs_Clun_ssois.xlsx ---
 
+def _merge_csv_tokens(v1: str, v2: str) -> str:
+    parts: list[str] = []
+    for src in (v1, v2):
+        for p in str(src or "").split(","):
+            clean = p.strip()
+            if clean and clean not in parts:
+                parts.append(clean)
+    return ", ".join(parts)
+
+
 def parse_legacy_pg_csv(path: Path) -> list[BddRecord]:
     if not path.exists():
         return []
-    dedup: dict[tuple[str, int | None, str], BddRecord] = {}
+    records: list[BddRecord] = []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
 
@@ -449,16 +485,12 @@ def parse_legacy_pg_csv(path: Path) -> list[BddRecord]:
         buque = row[2].strip()
         fams = row[3].strip()
         proms_raw = row[4].strip()
+        sortie = row[5].strip() if len(row) > 5 else ""
         if not _is_valid_buque(buque):
             continue
         proms = int(proms_raw) if proms_raw.isdigit() else None
-        prof = build_profile(buque)
-        key = (prof.visual_clean or buque.lower(), proms, nom.lower())
-        if key in dedup:
-            if fams and fams not in dedup[key].fams.split(", "):
-                dedup[key].fams = f"{dedup[key].fams}, {fams}".strip(", ")
-        else:
-            dedup[key] = BddRecord(
+        records.append(
+            BddRecord(
                 kind="pg",
                 buque=buque,
                 nom=nom,
@@ -466,10 +498,84 @@ def parse_legacy_pg_csv(path: Path) -> list[BddRecord]:
                 fams=fams,
                 proms=proms,
                 annee=str(1800 + proms) if proms else "",
-                source="Liste PGs Clunss",
-                profile=prof,
+                source="Liste PGs Clunss (CSV)",
+                profile=build_profile(buque),
+                sortie=sortie,
             )
-    return list(dedup.values())
+        )
+    return records
+
+
+def parse_legacy_pg_xlsx(path: Path) -> list[BddRecord]:
+    """Lit les feuilles 'Liste PGs Clunss' et 'Check buque 2.22' de 222_Liste PGs Clun_sssois - à jour.xlsx."""
+    if not path.exists():
+        return []
+    wb = load_workbook(path, read_only=True, data_only=True)
+    records: list[BddRecord] = []
+    try:
+        if "Liste PGs Clunss" in wb.sheetnames:
+            ws = wb["Liste PGs Clunss"]
+            rows = list(ws.iter_rows(values_only=True))
+            header_idx = 0
+            for i, row in enumerate(rows[:5]):
+                joined = ",".join(_cell_to_str(c).lower() for c in row)
+                if "buque" in joined and "prom" in joined:
+                    header_idx = i
+                    break
+            for row in rows[header_idx + 1 :]:
+                if len(row) < 5:
+                    continue
+                nom = _cell_to_str(row[0])
+                prenom = _cell_to_str(row[1])
+                buque = _cell_to_str(row[2])
+                fams = _cell_to_str(row[3])
+                proms_raw = _cell_to_str(row[4])
+                sortie = _cell_to_str(row[5]) if len(row) > 5 else ""
+                if not _is_valid_buque(buque):
+                    continue
+                proms = int(proms_raw) if proms_raw.isdigit() else None
+                records.append(
+                    BddRecord(
+                        kind="pg",
+                        buque=buque,
+                        nom=nom,
+                        prenom=prenom,
+                        fams=fams,
+                        proms=proms,
+                        annee=str(1800 + proms) if proms else "",
+                        source="222_Liste PGs Clunss",
+                        profile=build_profile(buque),
+                        sortie=sortie,
+                    )
+                )
+
+        if "Check buque 2.22" in wb.sheetnames:
+            ws2 = wb["Check buque 2.22"]
+            for row in ws2.iter_rows(values_only=True):
+                if len(row) < 5:
+                    continue
+                buque = _cell_to_str(row[2])
+                if not _is_valid_buque(buque):
+                    continue
+                fams = _cell_to_str(row[3])
+                proms_raw = _cell_to_str(row[4])
+                proms = int(proms_raw) if proms_raw.isdigit() else None
+                records.append(
+                    BddRecord(
+                        kind="pg",
+                        buque=buque,
+                        nom=_cell_to_str(row[0]),
+                        prenom=_cell_to_str(row[1]),
+                        fams=fams,
+                        proms=proms,
+                        annee=str(1800 + proms) if proms else "",
+                        source="Check buque 2.22",
+                        profile=build_profile(buque),
+                    )
+                )
+    finally:
+        wb.close()
+    return records
 
 
 def parse_legacy_cl225_csv(path: Path) -> list[BddRecord]:
@@ -535,34 +641,46 @@ def parse_legacy_ct_csv(path: Path) -> list[BddRecord]:
     with path.open("r", encoding="utf-8-sig", newline="") as f:
         rows = list(csv.reader(f))
 
-    records: list[BddRecord] = []
-    seen: set[tuple[str, str]] = set()
+    by_key: dict[tuple[str, int | None, str], BddRecord] = {}
     mode = "standard"
     last_annee = ""
     last_proms1_str = ""
     last_proms2_str = ""
 
-    def _add_ct(buque_raw: str, annee: str, proms_str: str) -> None:
+    def _clean_ct_fams(raw_fams: str) -> str:
+        s = raw_fams.strip()
+        if not s or s == "?":
+            return ""
+        return s
+
+    def _add_ct(buque_raw: str, fams_raw: str, annee: str, proms_str: str) -> None:
+        note_m = _CT_STATUS_SUFFIX_RE.search(buque_raw or "")
+        note_suffix = f" ({note_m.group(0).strip().strip('()')})" if note_m else ""
+        ct_year = (annee or proms_str).strip()
+        ct_info_val = f"{ct_year}{note_suffix}".strip()
+        fams_clean = _clean_ct_fams(fams_raw)
+
         for b in _clean_ct_candidate(buque_raw):
             p_int = _extract_proms_int_legacy(proms_str)
             prof = build_profile(b)
-            key = (prof.visual_clean or b.lower(), proms_str or annee)
-            if key in seen:
-                continue
-            seen.add(key)
-            records.append(
-                BddRecord(
+            vis = prof.visual_clean or b.lower()
+            key = (vis, p_int, ct_year if p_int is None else "")
+            if key in by_key:
+                by_key[key].fams = _merge_csv_tokens(by_key[key].fams, fams_clean)
+                by_key[key].ct_info = _merge_csv_tokens(by_key[key].ct_info, ct_info_val)
+            else:
+                by_key[key] = BddRecord(
                     kind="ct",
                     buque=b,
                     nom="",
                     prenom="",
-                    fams="",
+                    fams=fams_clean,
                     proms=p_int,
-                    annee=annee or proms_str,
+                    annee=ct_year,
                     source="Liste des CT",
                     profile=prof,
+                    ct_info=ct_info_val,
                 )
-            )
 
     for row in rows:
         cells = [c.strip() for c in row]
@@ -587,11 +705,13 @@ def parse_legacy_ct_csv(path: Path) -> list[BddRecord]:
             if col0:
                 last_annee = col0
             if col1.startswith("Cl"):
-                for c in cells[2:]:
-                    _add_ct(c, last_annee or "1969", col1)
+                for i, c in enumerate(cells[2:], start=2):
+                    if i == 14 and c == "26":
+                        continue
+                    _add_ct(c, "26" if i == 13 and len(cells) > 14 and cells[14] == "26" else "", last_annee or "1969", col1)
             else:
                 for c in cells[1:]:
-                    _add_ct(c, last_annee or "1969-1982", "1969-1982")
+                    _add_ct(c, "", last_annee or "1969-1982", "1969-1982")
             continue
 
         if mode == "dual":
@@ -605,10 +725,12 @@ def parse_legacy_ct_csv(path: Path) -> list[BddRecord]:
                 last_proms2_str = col8
             for idx in (2, 4, 6):
                 if idx < len(cells) and cells[idx]:
-                    _add_ct(cells[idx], last_annee, last_proms1_str)
+                    f_val = cells[idx + 1] if idx + 1 < len(cells) else ""
+                    _add_ct(cells[idx], f_val, last_annee, last_proms1_str)
             for idx in (9, 11, 13):
                 if idx < len(cells) and cells[idx]:
-                    _add_ct(cells[idx], last_annee, last_proms2_str)
+                    f_val = cells[idx + 1] if idx + 1 < len(cells) else ""
+                    _add_ct(cells[idx], f_val, last_annee, last_proms2_str)
             continue
 
         col1 = cells[1] if len(cells) > 1 else ""
@@ -619,10 +741,11 @@ def parse_legacy_ct_csv(path: Path) -> list[BddRecord]:
         idx = 2
         while idx < len(cells):
             if cells[idx]:
-                _add_ct(cells[idx], last_annee, last_proms1_str)
+                f_val = cells[idx + 1] if idx + 1 < len(cells) else ""
+                _add_ct(cells[idx], f_val, last_annee, last_proms1_str)
             idx += 2
 
-    return records
+    return list(by_key.values())
 
 
 def load_bdd_index(
@@ -640,8 +763,8 @@ def load_bdd_index(
 
     pg_records: list[BddRecord] = []
     ct_records: list[BddRecord] = []
-    pg_seen: set[tuple[str, int | None]] = set()
-    ct_seen: set[tuple[str, int | None, str]] = set()
+    pg_by_key: dict[tuple[str, int | None, str], BddRecord] = {}
+    ct_by_key: dict[tuple[str, int | None, str], BddRecord] = {}
     default_loaded = False
 
     def _register_row(
@@ -653,47 +776,68 @@ def load_bdd_index(
         annee: str,
         is_ct: bool,
         source: str,
+        sortie: str = "",
+        ct_info: str = "",
     ) -> None:
         prof = build_profile(buque)
         vis_key = prof.visual_clean or buque.lower()
+        nom_key = _normalize_header(nom)
 
-        # Enregistrer en tant que PG si prom's connue (Règle 1)
+        # Enregistrer en tant que PG si prom's connue (Règle 1), en fusionnant les multi-Fam's en mémoire
         if not is_ct or proms is not None:
-            pg_k = (vis_key, proms)
-            if pg_k not in pg_seen:
-                pg_seen.add(pg_k)
-                pg_records.append(
-                    BddRecord(
-                        kind="pg",
-                        buque=buque,
-                        nom=nom,
-                        prenom=prenom,
-                        fams=fams,
-                        proms=proms,
-                        annee=annee,
-                        source=source,
-                        profile=prof,
-                    )
+            pg_k = (vis_key, proms, nom_key)
+            existing_pg = pg_by_key.get(pg_k)
+            if existing_pg is not None:
+                existing_pg.fams = _merge_csv_tokens(existing_pg.fams, fams)
+                existing_pg.sortie = _merge_csv_tokens(existing_pg.sortie, sortie)
+                existing_pg.ct_info = _merge_csv_tokens(existing_pg.ct_info, ct_info)
+                if not existing_pg.prenom and prenom:
+                    existing_pg.prenom = prenom
+            else:
+                rec = BddRecord(
+                    kind="pg",
+                    buque=buque,
+                    nom=nom,
+                    prenom=prenom,
+                    fams=fams,
+                    proms=proms,
+                    annee=annee,
+                    source=source,
+                    profile=prof,
+                    sortie=sortie,
+                    ct_info=ct_info,
                 )
+                pg_by_key[pg_k] = rec
+                pg_records.append(rec)
 
-        # Enregistrer en tant que CT si CT=Vrai (Règle 2)
+        # Enregistrer en tant que CT si CT=Vrai (Règle 2), en fusionnant les multi-Fam's en mémoire
         if is_ct:
             ct_k = (vis_key, proms, annee if proms is None else "")
-            if ct_k not in ct_seen:
-                ct_seen.add(ct_k)
-                ct_records.append(
-                    BddRecord(
-                        kind="ct",
-                        buque=buque,
-                        nom=nom,
-                        prenom=prenom,
-                        fams=fams,
-                        proms=proms,
-                        annee=annee,
-                        source=source,
-                        profile=prof,
-                    )
+            existing_ct = ct_by_key.get(ct_k)
+            if existing_ct is not None:
+                existing_ct.fams = _merge_csv_tokens(existing_ct.fams, fams)
+                existing_ct.sortie = _merge_csv_tokens(existing_ct.sortie, sortie)
+                existing_ct.ct_info = _merge_csv_tokens(existing_ct.ct_info, ct_info)
+                if not existing_ct.nom and nom:
+                    existing_ct.nom = nom
+                if not existing_ct.prenom and prenom:
+                    existing_ct.prenom = prenom
+            else:
+                rec = BddRecord(
+                    kind="ct",
+                    buque=buque,
+                    nom=nom,
+                    prenom=prenom,
+                    fams=fams,
+                    proms=proms,
+                    annee=annee,
+                    source=source,
+                    profile=prof,
+                    sortie=sortie,
+                    ct_info=ct_info,
                 )
+                ct_by_key[ct_k] = rec
+                ct_records.append(rec)
 
     if target_file.exists():
         parsed = parse_unified_table(
@@ -712,6 +856,8 @@ def load_bdd_index(
                 annee=row["annee"],
                 is_ct=row["is_ct"],
                 source=target_file.name,
+                sortie=row.get("sortie", ""),
+                ct_info=row.get("ct_info", ""),
             )
         default_loaded = True
 

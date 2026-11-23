@@ -340,12 +340,14 @@ function renderEntriesTable() {
   }
 
   for (const e of filtered) {
-    const formatChoiceCell = (buque, police) => {
-      const children = [el("strong", { text: buque || "—" })];
+    const formatChoiceCell = (label, buque, police) => {
+      const valChildren = [el("strong", { text: buque || "—" })];
       if (police) {
-        children.push(el("span", { class: "choice-sub", text: `Police : ${police}` }));
+        valChildren.push(el("span", { class: "choice-sub", text: `Police : ${police}` }));
       }
-      return el("td", {}, children);
+      return el("td", { "data-label": label }, [
+        el("div", { class: "td-val" }, valChildren),
+      ]);
     };
 
     const nomChildren = [el("strong", { text: e.nom })];
@@ -354,11 +356,13 @@ function renderEntriesTable() {
     }
 
     const tr = el("tr", {}, [
-      el("td", {}, nomChildren),
-      formatChoiceCell(e.choix1, e.police1),
-      formatChoiceCell(e.choix2, e.police2),
-      formatChoiceCell(e.choix3, e.police3),
-      el("td", { text: e.updated_by || e.created_by || "—" }),
+      el("td", { class: "entry-nom-cell" }, nomChildren),
+      formatChoiceCell("Choix 1", e.choix1, e.police1),
+      formatChoiceCell("Choix 2", e.choix2, e.police2),
+      formatChoiceCell("Choix 3", e.choix3, e.police3),
+      el("td", { "data-label": "Saisi par" }, [
+        el("span", { class: "td-val", text: e.updated_by || e.created_by || "—" }),
+      ]),
       el("td", { class: "cell-actions" }, [
         el("button", {
           type: "button",
@@ -502,14 +506,17 @@ function renderComparison() {
     const tds = [el("td", { class: "compare-nom", text: nomLabel })];
 
     for (const ch of row.choices) {
-      const cellChildren = [
+      const contentChildren = [
         el("div", { class: "cell-main", text: ch.raw || "—" }),
       ];
       if (state.showFontsInCompare && ch.police) {
-        cellChildren.push(
+        contentChildren.push(
           el("div", { class: "cell-police", text: `Police : ${ch.police}` })
         );
       }
+      const cellChildren = [
+        el("div", { class: "cell-content" }, contentChildren),
+      ];
       if (ch.active_rules && ch.active_rules.length > 0) {
         cellChildren.push(
           el(
@@ -526,6 +533,7 @@ function renderComparison() {
           class: `compare-cell c-${ch.color}`,
           "data-entry-id": String(row.id),
           "data-choice-index": String(ch.choice_index),
+          "data-choice-label": `Choix ${ch.choice_index}`,
           title: `${ch.label} — Cliquer pour détails`,
         },
         cellChildren
@@ -543,6 +551,7 @@ function closeDrawer() {
   state.selectedCell = null;
   document.getElementById("drawer-backdrop").classList.add("hidden");
   document.getElementById("inspect-drawer").classList.add("hidden");
+  document.body.classList.remove("drawer-open");
 }
 
 function openInspectorDrawer(entryId, choiceIndex) {
@@ -739,6 +748,7 @@ function openInspectorDrawer(entryId, choiceIndex) {
 
   document.getElementById("drawer-backdrop").classList.remove("hidden");
   document.getElementById("inspect-drawer").classList.remove("hidden");
+  document.body.classList.add("drawer-open");
 }
 
 async function saveOverrideFromDrawer(entryId, choiceIndex, isProblematic, reason, ignoredRules) {
@@ -1146,6 +1156,9 @@ function initEventListeners() {
     document.querySelectorAll(".filter-pill").forEach((p) => {
       p.classList.toggle("active", p.dataset.filter === filterVal);
     });
+    document.querySelectorAll(".kpi-card").forEach((c) => {
+      c.classList.toggle("active", c.dataset.filter === filterVal);
+    });
     renderComparison();
   };
 
@@ -1352,7 +1365,9 @@ async function boot() {
   ensureOperatorName(false);
   connectWebSocket();
   await Promise.all([loadNetworkInfo(), loadSettings(), loadEntries()]);
-  document.getElementById("input-nom").focus();
+  if (window.matchMedia("(min-width: 769px)").matches) {
+    document.getElementById("input-nom").focus();
+  }
 }
 
 boot().catch((err) => {
