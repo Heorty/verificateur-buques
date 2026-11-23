@@ -1,0 +1,22 @@
+# Bases de données confidentielles (PGs, CTs, saisies locales)
+bdd/
+data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+Liste_PGs_Clun_ssois.xlsx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Système & logs
+*.log
+.DS_Store
+Thumbs.db

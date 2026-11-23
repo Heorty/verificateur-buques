@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vérificateur de Buques — Clun'ss</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar no-print">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">A&amp;M</div>
+        <div>
+          <h1>Vérificateur de Buques <span id="header-proms-badge" class="badge-proms">Cl226</span></h1>
+          <p class="subtitle">Saisie collaborative &amp; vérification phonétique des buques Clun'ss</p>
+        </div>
+      </div>
+
+      <div class="collab-bar">
+        <button id="btn-share-lan" type="button" class="pill pill-action" title="Copier l'adresse Wi-Fi pour les autres opérateurs">
+          <span class="dot-lan"></span>
+          <span id="lan-url-label">Partager sur le Wi-Fi…</span>
+        </button>
+
+        <div class="pill pill-presence" id="presence-pill" title="Opérateurs connectés en direct">
+          <span id="ws-status-dot" class="ws-dot offline"></span>
+          <span id="presence-count">Connexion…</span>
+          <span id="presence-names" class="presence-names"></span>
+        </div>
+
+        <button id="btn-operator" type="button" class="pill pill-operator" title="Changer votre nom d'opérateur">
+          Opérateur : <strong id="operator-name-display">Anonyme</strong> ✎
+        </button>
+      </div>
+    </div>
+
+    <nav class="tabs-bar" aria-label="Navigation principale">
+      <button type="button" class="tab-btn active" data-tab="saisie">
+        1. Saisie des feuilles <span id="tab-badge-entries" class="tab-badge">0</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="comparaison">
+        2. Comparaison &amp; Export <span id="tab-badge-conflicts" class="tab-badge warn">0</span>
+      </button>
+      <button type="button" class="tab-btn" data-tab="testeur">
+        Testeur phonétique
+      </button>
+      <button type="button" class="tab-btn" data-tab="bdd">
+        BDD &amp; Paramètres
+      </button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- ==================== ONGLET 1 : SAISIE ==================== -->
+    <section id="tab-saisie" class="tab-panel active">
+      <div class="card form-card no-print">
+        <div class="card-header">
+          <div>
+            <h2 id="form-mode-title">Nouvelle feuille de 1<sup>re</sup> année</h2>
+            <p class="muted">Nom → <kbd>Tab</kbd> → Choix 1 → 2 → 3 → Police 1 → 2 → 3 → <kbd>Entrée</kbd> (taper <code>^T</code> insère automatiquement <code>ᵀ</code>).</p>
+          </div>
+          <div id="edit-banner" class="edit-banner hidden">
+            <span>Modification de <strong id="edit-target-name"></strong></span>
+            <button type="button" id="btn-cancel-edit" class="btn btn-sm btn-ghost">Annuler</button>
+          </div>
+        </div>
+
+        <form id="entry-form" autocomplete="off">
+          <div class="sheet-grid">
+            <!-- RECTO -->
+            <div class="sheet-side sheet-recto">
+              <div class="side-label">RECTO — Identité &amp; 3 choix ordonnés</div>
+
+              <div class="form-row-2">
+                <div class="field">
+                  <label for="input-nom">Nom de famille <span class="req">*</span></label>
+                  <input id="input-nom" name="nom" type="text" required placeholder="Ex : MARTIN" autocomplete="off" />
+                  <div id="duplicate-nom-alert" class="inline-alert hidden"></div>
+                </div>
+                <div class="field">
+                  <label for="input-prenom">Prénom <span class="opt">(optionnel, clic)</span></label>
+                  <input id="input-prenom" name="prenom" type="text" tabindex="-1" placeholder="Ex : Paul" autocomplete="off" />
+                </div>
+              </div>
+
+              <div class="special-strip" aria-label="Raccourcis notations Clun'ss">
+                <span class="strip-label">Notations :</span>
+                <button type="button" class="sym-btn" tabindex="-1" data-insert="(arts)" data-target-group="entry">(arts)</button>
+                <button type="button" class="sym-btn" tabindex="-1" data-insert="ᵀ" data-target-group="entry" title="Transposée ᵀ (se lit à l'envers — taper ^T convertit aussi en ᵀ)">ᵀ</button>
+                <button type="button" class="sym-btn" tabindex="-1" data-insert="^0" data-target-group="entry" title="Puissance 0 (ne se lit pas)">^0</button>
+                <button type="button" class="sym-btn" tabindex="-1" data-insert="²" data-target-group="entry" title="Carré ² : se lit « karse » ou répète 2 fois le mot / groupe entre parenthèses">²</button>
+                <button type="button" class="sym-btn" tabindex="-1" data-insert="π" data-target-group="entry">π</button>
+                <button type="button" class="sym-btn" tabindex="-1" data-insert="φ" data-target-group="entry">φ</button>
+                <button type="button" class="sym-btn" tabindex="-1" data-insert="Ω" data-target-group="entry">Ω</button>
+                <button type="button" class="sym-btn" tabindex="-1" data-insert="(H2O)" data-target-group="entry">(H2O)</button>
+              </div>
+
+              <div class="field">
+                <label for="input-choix1">Choix 1</label>
+                <input id="input-choix1" name="choix1" type="text" class="buque-input" placeholder="1er choix de buque" />
+                <div id="preview-choix1" class="phonetic-preview"></div>
+              </div>
+
+              <div class="field">
+                <label for="input-choix2">Choix 2</label>
+                <input id="input-choix2" name="choix2" type="text" class="buque-input" placeholder="2e choix de buque" />
+                <div id="preview-choix2" class="phonetic-preview"></div>
+              </div>
+
+              <div class="field">
+                <label for="input-choix3">Choix 3</label>
+                <input id="input-choix3" name="choix3" type="text" class="buque-input" placeholder="3e choix de buque" />
+                <div id="preview-choix3" class="phonetic-preview"></div>
+              </div>
+            </div>
+
+            <!-- VERSO -->
+            <div class="sheet-side sheet-verso">
+              <div class="side-label">VERSO — 3 polices d'écriture associées</div>
+
+              <div class="field">
+                <label for="input-police1">Police du Choix 1</label>
+                <input id="input-police1" name="police1" type="text" list="fonts-datalist" placeholder="Ex : Garamond, Fraktur…" />
+              </div>
+
+              <div class="field">
+                <label for="input-police2">Police du Choix 2</label>
+                <input id="input-police2" name="police2" type="text" list="fonts-datalist" placeholder="Ex : Helvetica, Clarendon…" />
+              </div>
+
+              <div class="field">
+                <label for="input-police3">Police du Choix 3</label>
+                <input id="input-police3" name="police3" type="text" list="fonts-datalist" placeholder="Ex : Old English, Impact…" />
+              </div>
+
+              <div class="form-actions-verso">
+                <button type="submit" id="btn-submit-entry" class="btn btn-primary btn-lg">
+                  Enregistrer la feuille (Entrée)
+                </button>
+                <button type="button" id="btn-clear-form" class="btn btn-ghost">Vider</button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <datalist id="fonts-datalist"></datalist>
+      </div>
+
+      <div class="card">
+        <div class="card-header wrap">
+          <div>
+            <h2>Feuilles enregistrées (<span id="entries-count-text">0</span>)</h2>
+            <p class="muted">Synchronisé en temps réel entre tous les opérateurs connectés.</p>
+          </div>
+          <div class="toolbar">
+            <input id="entries-search" type="search" class="search-input" placeholder="Filtrer par nom ou buque…" />
+            <label class="btn btn-secondary btn-file">
+              Importer CSV
+              <input id="entries-csv-file" type="file" accept=".csv,.txt" hidden />
+            </label>
+            <button type="button" id="btn-go-compare" class="btn btn-primary">
+              Passer à la comparaison →
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table" id="entries-table">
+            <thead>
+              <tr>
+                <th>Nom de famille</th>
+                <th>Choix 1 &amp; Police</th>
+                <th>Choix 2 &amp; Police</th>
+                <th>Choix 3 &amp; Police</th>
+                <th>Saisi par</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="entries-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ONGLET 2 : COMPARAISON & EXPORT ==================== -->
+    <section id="tab-comparaison" class="tab-panel">
+      <div class="kpi-grid no-print" id="kpi-grid">
+        <button type="button" class="kpi-card" data-filter="all">
+          <span class="kpi-val" id="kpi-students">0</span>
+          <span class="kpi-lbl">Étudiants</span>
+        </button>
+        <button type="button" class="kpi-card kpi-vert" data-filter="vert">
+          <span class="kpi-val" id="kpi-vert">0</span>
+          <span class="kpi-lbl">Vert · Utilisable</span>
+        </button>
+        <button type="button" class="kpi-card kpi-rouge" data-filter="rouge">
+          <span class="kpi-val" id="kpi-rouge">0</span>
+          <span class="kpi-lbl">Rouge · Règle 1 (&lt;10 ans)</span>
+        </button>
+        <button type="button" class="kpi-card kpi-violet" data-filter="violet">
+          <span class="kpi-val" id="kpi-violet">0</span>
+          <span class="kpi-lbl">Violet · Règle 2 (CT)</span>
+        </button>
+        <button type="button" class="kpi-card kpi-jaune" data-filter="jaune">
+          <span class="kpi-val" id="kpi-jaune">0</span>
+          <span class="kpi-lbl">Jaune · Règle 3 (Prom'ss)</span>
+        </button>
+        <button type="button" class="kpi-card kpi-orange" data-filter="orange">
+          <span class="kpi-val" id="kpi-orange">0</span>
+          <span class="kpi-lbl">Orange · Règle 4 (Problém.)</span>
+        </button>
+        <button type="button" class="kpi-card kpi-warn" data-filter="no_green">
+          <span class="kpi-val" id="kpi-no-green">0</span>
+          <span class="kpi-lbl">Sans aucun choix vert</span>
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="compare-toolbar no-print">
+          <div class="export-group">
+            <a id="btn-export-xlsx" href="/api/export/xlsx" class="btn btn-primary">
+              Exporter Excel coloré (.xlsx)
+            </a>
+            <a id="btn-export-csv" href="/api/export/csv" class="btn btn-secondary">
+              Exporter CSV
+            </a>
+            <button type="button" id="btn-print" class="btn btn-ghost">Imprimer / PDF</button>
+          </div>
+
+          <div class="filter-group">
+            <input id="compare-search" type="search" class="search-input" placeholder="Chercher un nom ou une buque…" />
+            <label class="toggle-check">
+              <input type="checkbox" id="toggle-show-fonts" />
+              <span>Afficher les polices</span>
+            </label>
+            <button type="button" id="btn-toggle-sensitivity" class="btn btn-ghost btn-sm">
+              Sensibilité ▾
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-pills no-print" id="compare-filter-pills">
+          <button type="button" class="filter-pill active" data-filter="all">Tous</button>
+          <button type="button" class="filter-pill" data-filter="conflicts">Conflits uniquement</button>
+          <button type="button" class="filter-pill" data-filter="no_green">0 choix vert</button>
+          <button type="button" class="filter-pill pill-rouge" data-filter="rouge">Rouge (R1)</button>
+          <button type="button" class="filter-pill pill-violet" data-filter="violet">Violet (R2 CT)</button>
+          <button type="button" class="filter-pill pill-jaune" data-filter="jaune">Jaune (R3)</button>
+          <button type="button" class="filter-pill pill-orange" data-filter="orange">Orange (R4)</button>
+          <button type="button" class="filter-pill pill-vert" data-filter="vert">Vert (OK)</button>
+        </div>
+
+        <div id="sensitivity-panel" class="sensitivity-panel hidden no-print">
+          <div class="sens-item">
+            <label for="slider-r12">Seuil Règles 1 &amp; 2 (PGs / CTs) : <strong id="val-r12">85%</strong></label>
+            <input id="slider-r12" type="range" min="65" max="100" step="1" value="85" />
+          </div>
+          <div class="sens-item">
+            <label for="slider-r3">Seuil Règle 3 (Même prom'ss) : <strong id="val-r3">75%</strong></label>
+            <input id="slider-r3" type="range" min="60" max="100" step="1" value="75" />
+          </div>
+          <div class="sens-item">
+            <label for="select-r3-scope">Portée Règle 3</label>
+            <select id="select-r3-scope">
+              <option value="all">Comparer tous les choix (1, 2, 3)</option>
+              <option value="choice1">Comparer au Choix 1 des autres</option>
+            </select>
+          </div>
+          <button type="button" id="btn-save-sensitivity" class="btn btn-secondary btn-sm">
+            Enregistrer ces seuils
+          </button>
+        </div>
+
+        <div class="print-legend">
+          <strong>Légende :</strong>
+          <span class="legend-chip c-rouge">Rouge : Règle 1 (&lt; 10 ans)</span>
+          <span class="legend-chip c-violet">Violet : Règle 2 (CT)</span>
+          <span class="legend-chip c-jaune">Jaune : Règle 3 (Même prom'ss)</span>
+          <span class="legend-chip c-orange">Orange : Règle 4 (Problématique)</span>
+          <span class="legend-chip c-vert">Vert : Utilisable</span>
+          <span class="muted no-print">· Cliquez sur une cellule pour inspecter ou ignorer un faux positif.</span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="compare-table" id="compare-table">
+            <thead>
+              <tr>
+                <th>Nom de famille</th>
+                <th>Choix 1</th>
+                <th>Choix 2</th>
+                <th>Choix 3</th>
+              </tr>
+            </thead>
+            <tbody id="compare-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ONGLET 3 : TESTEUR PHONÉTIQUE ==================== -->
+    <section id="tab-testeur" class="tab-panel">
+      <div class="card">
+        <h2>Testeur phonétique &amp; notations Clun'ss</h2>
+        <p class="muted">
+          Testez instantanément l'interprétation des parenthèses <code>(arts)</code>, transposées <code>ᵀ</code>,
+          puissances <code>^0</code> / <code>²</code> (« karse » ou ×2) et vérifiez les conflits potentiels avant validation.
+        </p>
+
+        <div class="tester-box">
+          <input id="tester-input" type="text" class="tester-input" placeholder="Ex : pompl(arts), (mot)ᵀ, Super(test)^0, Bas(art), πRHANA…" />
+          <div class="special-strip">
+            <span class="strip-label">Insérer :</span>
+            <button type="button" class="sym-btn" tabindex="-1" data-insert="(arts)" data-target-group="tester">(arts)</button>
+            <button type="button" class="sym-btn" tabindex="-1" data-insert="ᵀ" data-target-group="tester" title="Transposée ᵀ (se lit à l'envers — taper ^T convertit aussi en ᵀ)">ᵀ</button>
+            <button type="button" class="sym-btn" tabindex="-1" data-insert="^0" data-target-group="tester">^0</button>
+            <button type="button" class="sym-btn" tabindex="-1" data-insert="²" data-target-group="tester" title="Carré ² : se lit « karse » ou répète 2 fois le mot / groupe entre parenthèses">²</button>
+            <button type="button" class="sym-btn" tabindex="-1" data-insert="π" data-target-group="tester">π</button>
+            <button type="button" class="sym-btn" tabindex="-1" data-insert="φ" data-target-group="tester">φ</button>
+            <button type="button" class="sym-btn" tabindex="-1" data-insert="Ω" data-target-group="tester">Ω</button>
+            <button type="button" class="sym-btn" tabindex="-1" data-insert="(H2O)" data-target-group="tester">(H2O)</button>
+          </div>
+          <div class="quick-examples">
+            <span class="muted">Exemples :</span>
+            <button type="button" class="example-chip" data-example="pompl(arts)">pompl(arts)</button>
+            <button type="button" class="example-chip" data-example="Bas(art)">Bas(art)</button>
+            <button type="button" class="example-chip" data-example="Wyst(Arts)ᵀ">Wyst(Arts)ᵀ</button>
+            <button type="button" class="example-chip" data-example="Super(test)^0">Super(test)^0</button>
+            <button type="button" class="example-chip" data-example="πRHANA">πRHANA</button>
+            <button type="button" class="example-chip" data-example="L∞πng">L∞πng</button>
+            <button type="button" class="example-chip" data-example="Mou²">Mou²</button>
+            <button type="button" class="example-chip" data-example="(BUG)²">(BUG)²</button>
+          </div>
+        </div>
+
+        <div id="tester-results" class="tester-results hidden"></div>
+      </div>
+    </section>
+
+    <!-- ==================== ONGLET 4 : BDD & PARAMÈTRES ==================== -->
+    <section id="tab-bdd" class="tab-panel">
+      <div class="bdd-grid">
+        <div class="card">
+          <h2>État des bases de données de référence</h2>
+          <div id="bdd-default-banner" class="inline-alert hidden"></div>
+          <div id="bdd-health-cards" class="bdd-stats-row"></div>
+          <div id="bdd-proms-coverage" class="proms-coverage"></div>
+          <div id="bdd-extra-batches" class="extra-batches"></div>
+        </div>
+
+        <div class="card">
+          <h2>Paramètres généraux</h2>
+          <form id="settings-form" class="settings-form">
+            <div class="form-row-2">
+              <div class="field">
+                <label for="set-current-proms">Prom's en cours (1<sup>re</sup> année)</label>
+                <input id="set-current-proms" type="number" min="100" max="999" required />
+              </div>
+              <div class="field">
+                <label for="set-rule1-years">Fenêtre Règle 1 (années)</label>
+                <input id="set-rule1-years" type="number" min="1" max="100" required />
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="field">
+                <label for="set-thresh-r12">Seuil Règles 1 &amp; 2 (%)</label>
+                <input id="set-thresh-r12" type="number" min="50" max="100" required />
+              </div>
+              <div class="field">
+                <label for="set-thresh-r3">Seuil Règle 3 (%)</label>
+                <input id="set-thresh-r3" type="number" min="50" max="100" required />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Enregistrer les paramètres</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="bdd-grid">
+        <div class="card">
+          <h2>Recherche dans la BDD (PGs &amp; CTs)</h2>
+          <div class="toolbar">
+            <input id="bdd-search-input" type="search" class="search-input" placeholder="Nom, buque, ou écriture phonétique…" />
+            <select id="bdd-search-kind">
+              <option value="all">PGs + CTs</option>
+              <option value="pg">PGs uniquement</option>
+              <option value="ct">CTs uniquement</option>
+            </select>
+            <button type="button" id="btn-bdd-search" class="btn btn-secondary">Rechercher</button>
+          </div>
+          <div id="bdd-search-results" class="bdd-search-results"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header wrap">
+            <div>
+              <h2>Importer une base de buques (.xlsx ou .csv)</h2>
+              <p class="muted">
+                Colonnes reconnues : <code>Buque</code>, <code>Année d'entrée / Prom'ss</code>, <code>CT</code> (Vrai/Faux)
+                — optionnelles : <code>Nom</code>, <code>Prénom</code>, <code>Fam's</code>.
+              </p>
+            </div>
+            <a href="/api/bdd/template.xlsx" class="btn btn-sm btn-ghost">Télécharger le modèle (.xlsx)</a>
+          </div>
+          <form id="bdd-import-form" class="settings-form">
+            <div class="form-row-2">
+              <div class="field">
+                <label for="bdd-import-kind">Mode d'import</label>
+                <select id="bdd-import-kind">
+                  <option value="auto" selected>Automatique (selon la colonne CT du tableau)</option>
+                  <option value="pg">Forcer tout en PG (Règle 1)</option>
+                  <option value="ct">Forcer tout en CT (Règle 2)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="bdd-import-proms">Prom'ss par défaut (si absente du tableau)</label>
+                <input id="bdd-import-proms" type="number" placeholder="Ex : 223 (optionnel si colonne présente)" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="bdd-import-batch">Nom du lot</label>
+              <input id="bdd-import-batch" type="text" placeholder="Ex : Proms Cl223 ou Liste complète" required />
+            </div>
+            <div class="field">
+              <label for="bdd-import-file">Fichier Excel (.xlsx) ou CSV</label>
+              <input id="bdd-import-file" type="file" accept=".xlsx,.csv,.txt" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Importer dans la BDD</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Lexique Règle 4 (Références problématiques)</h2>
+        <p class="muted">Ces termes déclenchent automatiquement un avertissement orange (Règle 4). Vous pouvez aussi signaler manuellement toute buque depuis le tableau de comparaison.</p>
+        <form id="term-form" class="toolbar">
+          <input id="term-input" type="text" placeholder="Nouveau terme ou référence…" required />
+          <input id="term-category" type="text" placeholder="Catégorie (ex : Politique, Vulgarité)" value="Personnalisé" />
+          <button type="submit" class="btn btn-secondary">Ajouter au lexique</button>
+        </form>
+        <div id="terms-list" class="terms-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== TIROIR D'INSPECTION ==================== -->
+  <div id="drawer-backdrop" class="drawer-backdrop hidden no-print"></div>
+  <aside id="inspect-drawer" class="drawer hidden no-print" aria-label="Détails de la buque">
+    <div class="drawer-header">
+      <div>
+        <div id="drawer-student" class="drawer-student"></div>
+        <h3 id="drawer-buque" class="drawer-buque"></h3>
+      </div>
+      <button type="button" id="btn-close-drawer" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div id="drawer-body" class="drawer-body"></div>
+  </aside>
+
+  <div id="toast-container" class="toast-container no-print"></div>
+
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
